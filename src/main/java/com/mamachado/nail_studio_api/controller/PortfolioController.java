@@ -21,8 +21,8 @@ public class PortfolioController {
     private PortfolioImportService importService;
 
     @GetMapping
-    public List<PortfolioItem> getAllItems() {
-        return portfolioRepository.findAll();
+    public List<PortfolioItem> getAllPortfolioItems() {
+        return portfolioRepository.findAllByOrderByIdDesc();
     }
 
     @PostMapping

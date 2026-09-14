@@ -36,7 +36,6 @@ public class PortfolioImportService {
 
         for (File file : files) {
             String fileName = file.getName();
-            // Formata o título baseado no nome do arquivo (ex: "fibra-de-vidro-1.jpg" vira "Fibra De Vidro 1")
             String title = formatTitle(fileName);
             
             // Monta a URL pública que o Supabase vai servir após os arquivos estarem no bucket
@@ -45,7 +44,12 @@ public class PortfolioImportService {
             PortfolioItem item = new PortfolioItem();
             item.setTitle(title);
             item.setImageUrl(imageUrl);
-            item.setCategory("Trabalhos Exclusivos"); // Categoria padrão ou dinâmica
+            
+            // Deixamos category, technique e customDate explicitamente como null 
+            // para que o card só apareça quando você preencher manualmente no banco.
+            item.setCategory(null);
+            item.setTechnique(null);
+            item.setCustomDate(null);
 
             itemsToSave.add(item);
         }
@@ -55,12 +59,6 @@ public class PortfolioImportService {
     }
 
     private String formatTitle(String fileName) {
-        // Remove a extensão
-        int dotIndex = fileName.lastIndexOf('.');
-        String nameWithoutExt = (dotIndex == -1) ? fileName : fileName.substring(0, dotIndex);
-        // Substitui hífens e underscores por espaços
-        String cleaned = nameWithoutExt.replace("-", " ").replace("_", " ");
-        // Capitaliza as palavras básicas
-        return cleaned.toUpperCase();
+        return "Trabalho Exclusivo";
     }
 }

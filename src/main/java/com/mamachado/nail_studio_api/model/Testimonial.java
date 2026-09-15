@@ -16,6 +16,9 @@ public class Testimonial {
     
     @Column(name = "image_url")
     private String imageUrl;
+
+    @Column(name = "whatsapp_url")
+    private String whatsappUrl; // Print real do WhatsApp (Lightbox)
     
     @Column(name = "alt_text")
     private String altText;

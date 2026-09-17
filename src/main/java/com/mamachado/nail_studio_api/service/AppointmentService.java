@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -24,7 +25,15 @@ public class AppointmentService {
     }
 
     public List<LocalTime> getAvailableTimes(Long serviceId, LocalDate date) {
-        // Regra 1: Domingos fechados
+        LocalDate today = LocalDate.now();
+        LocalDateTime now = LocalDateTime.now();
+
+        // Regra: Bloquear datas passadas
+        if (date.isBefore(today)) {
+            throw new RuntimeException("Não é permitido agendar horários para datas passadas.");
+        }
+
+        // Regra: Domingos fechados
         if (date.getDayOfWeek() == DayOfWeek.SUNDAY) {
             return new ArrayList<>();
         }
@@ -39,12 +48,18 @@ public class AppointmentService {
         LocalTime closingTime = LocalTime.of(19, 30);
 
         int totalServiceDurationMinutes = service.getDurationMinutes() + service.getBufferMinutes();
-
         LocalTime currentTime = openingTime;
 
         while (currentTime.plusMinutes(service.getDurationMinutes()).compareTo(closingTime) <= 0) {
             LocalTime candidateStart = currentTime;
             LocalTime candidateEnd = currentTime.plusMinutes(totalServiceDurationMinutes);
+
+            // Regra de 24h de antecedência mínima
+            LocalDateTime candidateDateTime = LocalDateTime.of(date, candidateStart);
+            if (candidateDateTime.isBefore(now.plusHours(24))) {
+                currentTime = currentTime.plusMinutes(30);
+                continue; // Pula este horário pois viola a antecedência mínima
+            }
 
             boolean isConflicting = false;
 
@@ -55,8 +70,6 @@ public class AppointmentService {
                 LocalTime existingStart = existing.getAppointmentTime();
                 LocalTime existingEnd = existingStart.plusMinutes(existingTotalDuration);
 
-                // Correção da sobreposição (Overlap Check):
-                // O horário proposto conflita se ele começa antes do existente terminar E termina depois do existente começar.
                 if (candidateStart.isBefore(existingEnd) && candidateEnd.isAfter(existingStart)) {
                     isConflicting = true;
                     break;
@@ -67,7 +80,6 @@ public class AppointmentService {
                 availableTimes.add(candidateStart);
             }
 
-            // Incrementa de 30 em 30 minutos para testar o próximo slot
             currentTime = currentTime.plusMinutes(30);
         }
 
@@ -75,8 +87,20 @@ public class AppointmentService {
     }
 
     public Appointment createAppointment(Long serviceId, String clientName, String clientPhone, LocalDate date, LocalTime time) {
+        LocalDate today = LocalDate.now();
+        LocalDateTime now = LocalDateTime.now();
+
+        if (date.isBefore(today)) {
+            throw new RuntimeException("Não é permitido realizar agendamentos em datas passadas.");
+        }
+
         if (date.getDayOfWeek() == DayOfWeek.SUNDAY) {
             throw new RuntimeException("O estúdio não abre aos domingos.");
+        }
+
+        LocalDateTime candidateDateTime = LocalDateTime.of(date, time);
+        if (candidateDateTime.isBefore(now.plusHours(24))) {
+            throw new RuntimeException("O agendamento deve ser feito com no mínimo 24 horas de antecedência.");
         }
 
         ServiceItem service = serviceItemRepository.findById(serviceId)

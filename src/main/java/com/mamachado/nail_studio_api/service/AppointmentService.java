@@ -18,10 +18,14 @@ public class AppointmentService {
 
     private final AppointmentRepository appointmentRepository;
     private final ServiceItemRepository serviceItemRepository;
+    private final NotificationService notificationService;
 
-    public AppointmentService(AppointmentRepository appointmentRepository, ServiceItemRepository serviceItemRepository) {
+    public AppointmentService(AppointmentRepository appointmentRepository, 
+                              ServiceItemRepository serviceItemRepository, 
+                              NotificationService notificationService) {
         this.appointmentRepository = appointmentRepository;
         this.serviceItemRepository = serviceItemRepository;
+        this.notificationService = notificationService;
     }
 
     public List<LocalTime> getAvailableTimes(Long serviceId, LocalDate date) {
@@ -130,6 +134,11 @@ public class AppointmentService {
         appointment.setAppointmentTime(time);
         appointment.setStatus("PENDENTE");
 
-        return appointmentRepository.save(appointment);
+        Appointment savedAppointment = appointmentRepository.save(appointment);
+
+        // Dispara o webhook para o n8n notificar a profissional de forma autônoma
+        notificationService.notifyProfessional(savedAppointment);
+
+        return savedAppointment;
     }
 }

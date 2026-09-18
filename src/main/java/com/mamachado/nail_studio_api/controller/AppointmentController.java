@@ -22,7 +22,6 @@ public class AppointmentController {
     }
 
     // Endpoint GET para buscar os horários disponíveis
-    // Exemplo de chamada: /api/appointments/available-times?serviceId=1&date=2026-06-15
     @GetMapping("/available-times")
     public ResponseEntity<List<LocalTime>> getAvailableTimes(
             @RequestParam Long serviceId,
@@ -32,7 +31,7 @@ public class AppointmentController {
         return ResponseEntity.ok(availableTimes);
     }
 
-    // DTO (Objeto de Transferência) simples para receber os dados do corpo da requisição do React
+    // DTO para receber os dados do corpo da requisição do React
     public static class AppointmentRequest {
         public Long serviceId;
         public String clientName;
@@ -41,8 +40,7 @@ public class AppointmentController {
         public LocalTime time;
     }
 
-    // Endpoint POST para criar o agendamento (fica como PENDENTE aguardando a validação humana)
-    // URL: http://localhost:8080/api/appointments
+    // Endpoint POST para criar o agendamento (retorna o objeto salvo contendo o confirmationToken)
     @PostMapping
     public ResponseEntity<?> createAppointment(@RequestBody AppointmentRequest request) {
         try {
@@ -55,8 +53,60 @@ public class AppointmentController {
             );
             return ResponseEntity.ok(createdAppointment);
         } catch (RuntimeException e) {
-            // Se houver conflito ou regra violada, devolve erro 400 com a mensagem explicativa
             return ResponseEntity.badRequest().body(e.getMessage());
         }
+    }
+
+    // Endpoints de Ação Rápida via Token (Acessados diretamente pelos links do WhatsApp)
+    @GetMapping("/token/{token}/confirmar")
+    @ResponseBody
+    public String confirmAppointment(@PathVariable String token) {
+        try {
+            appointmentService.updateAppointmentStatus(token, "CONFIRMADO");
+            return htmlResponse("Agendamento Confirmado! ✨", "O status foi atualizado para CONFIRMADO com sucesso no sistema.", "green");
+        } catch (Exception e) {
+            return htmlResponse("Erro ao Processar", e.getMessage(), "red");
+        }
+    }
+
+    @GetMapping("/token/{token}/recusar")
+    @ResponseBody
+    public String cancelAppointment(@PathVariable String token) {
+        try {
+            appointmentService.updateAppointmentStatus(token, "RECUSADO");
+            return htmlResponse("Agendamento Recusado", "O status foi atualizado para RECUSADO.", "amber");
+        } catch (Exception e) {
+            return htmlResponse("Erro ao Processar", e.getMessage(), "red");
+        }
+    }
+
+    @GetMapping("/token/{token}/reagendar")
+    @ResponseBody
+    public String rescheduleAppointment(@PathVariable String token) {
+        try {
+            appointmentService.updateAppointmentStatus(token, "REAGENDAR");
+            return htmlResponse("Solicitação de Reagendamento", "O agendamento foi marcado para REAGENDAR. Entre em contato com a cliente.", "blue");
+        } catch (Exception e) {
+            return htmlResponse("Erro ao Processar", e.getMessage(), "red");
+        }
+    }
+
+    // Método auxiliar para renderizar a página HTML de resposta leve e elegante
+    private String htmlResponse(String title, String message, String themeColor) {
+        String colorClass = "bg-green-500";
+        if (themeColor.equals("red")) colorClass = "bg-red-500";
+        if (themeColor.equals("amber")) colorClass = "bg-amber-500";
+        if (themeColor.equals("blue")) colorClass = "bg-blue-500";
+
+        return "<html lang='pt-BR'>" +
+                "<head><meta charset='UTF-8'><title>" + title + "</title>" +
+                "<script src='https://cdn.tailwindcss.com'></script></head>" +
+                "<body class='bg-zinc-950 text-white flex items-center justify-center min-h-screen'>" +
+                "<div class='bg-zinc-900 border border-zinc-800 p-8 rounded-2xl shadow-xl text-center max-w-md w-full space-y-4'>" +
+                "<div class='w-12 h-12 " + colorClass + " rounded-full flex items-center justify-center mx-auto text-white font-bold text-xl'>✓</div>" +
+                "<h1 class='text-2xl font-light tracking-wide'>" + title + "</h1>" +
+                "<p class='text-zinc-400 text-sm leading-relaxed'>" + message + "</p>" +
+                "<p class='text-xs text-zinc-600 pt-4'>Pode fechar esta aba com segurança.</p>" +
+                "</div></body></html>";
     }
 }

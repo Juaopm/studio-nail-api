@@ -12,6 +12,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 public class AppointmentService {
@@ -127,8 +128,16 @@ public class AppointmentService {
         appointment.setAppointmentDate(date);
         appointment.setAppointmentTime(time);
         appointment.setStatus("PENDENTE");
+        appointment.setConfirmationToken(UUID.randomUUID().toString()); // <--- Gera o token único v4
 
-        // Apenas salva no banco de dados com segurança
+        return appointmentRepository.save(appointment);
+    }
+
+    public Appointment updateAppointmentStatus(String token, String newStatus) {
+        Appointment appointment = appointmentRepository.findByConfirmationToken(token)
+                .orElseThrow(() -> new RuntimeException("Agendamento não encontrado para o token informado."));
+        
+        appointment.setStatus(newStatus);
         return appointmentRepository.save(appointment);
     }
 }

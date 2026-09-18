@@ -32,19 +32,23 @@ public class Appointment {
     @Column(nullable = false)
     private String status = "PENDENTE"; // PENDENTE, CONFIRMADO, CANCELADO
 
+    @Column(name = "confirmation_token", unique = true)
+    private String confirmationToken;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
     // Construtores
     public Appointment() {}
 
-    public Appointment(String clientName, String clientPhone, ServiceItem service, LocalDate appointmentDate, LocalTime appointmentTime) {
+    public Appointment(String clientName, String clientPhone, ServiceItem service, LocalDate appointmentDate, LocalTime appointmentTime, String confirmationToken) {
         this.clientName = clientName;
         this.clientPhone = clientPhone;
         this.service = service;
         this.appointmentDate = appointmentDate;
         this.appointmentTime = appointmentTime;
         this.status = "PENDENTE";
+        this.confirmationToken = confirmationToken;
         this.createdAt = LocalDateTime.now();
     }
 
@@ -69,6 +73,9 @@ public class Appointment {
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+
+    public String getConfirmationToken() { return confirmationToken; }
+    public void setConfirmationToken(String confirmationToken) { this.confirmationToken = confirmationToken; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

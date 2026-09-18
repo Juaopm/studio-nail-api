@@ -18,26 +18,21 @@ public class AppointmentService {
 
     private final AppointmentRepository appointmentRepository;
     private final ServiceItemRepository serviceItemRepository;
-    private final NotificationService notificationService;
 
     public AppointmentService(AppointmentRepository appointmentRepository, 
-                              ServiceItemRepository serviceItemRepository, 
-                              NotificationService notificationService) {
+                              ServiceItemRepository serviceItemRepository) {
         this.appointmentRepository = appointmentRepository;
         this.serviceItemRepository = serviceItemRepository;
-        this.notificationService = notificationService;
     }
 
     public List<LocalTime> getAvailableTimes(Long serviceId, LocalDate date) {
         LocalDate today = LocalDate.now();
         LocalDateTime now = LocalDateTime.now();
 
-        // Regra: Bloquear datas passadas
         if (date.isBefore(today)) {
             throw new RuntimeException("Não é permitido agendar horários para datas passadas.");
         }
 
-        // Regra: Domingos fechados
         if (date.getDayOfWeek() == DayOfWeek.SUNDAY) {
             return new ArrayList<>();
         }
@@ -58,11 +53,10 @@ public class AppointmentService {
             LocalTime candidateStart = currentTime;
             LocalTime candidateEnd = currentTime.plusMinutes(totalServiceDurationMinutes);
 
-            // Regra de 24h de antecedência mínima
             LocalDateTime candidateDateTime = LocalDateTime.of(date, candidateStart);
             if (candidateDateTime.isBefore(now.plusHours(24))) {
                 currentTime = currentTime.plusMinutes(30);
-                continue; // Pula este horário pois viola a antecedência mínima
+                continue;
             }
 
             boolean isConflicting = false;
@@ -134,11 +128,7 @@ public class AppointmentService {
         appointment.setAppointmentTime(time);
         appointment.setStatus("PENDENTE");
 
-        Appointment savedAppointment = appointmentRepository.save(appointment);
-
-        // Dispara o webhook para o n8n notificar a profissional de forma autônoma
-        notificationService.notifyProfessional(savedAppointment);
-
-        return savedAppointment;
+        // Apenas salva no banco de dados com segurança
+        return appointmentRepository.save(appointment);
     }
 }
